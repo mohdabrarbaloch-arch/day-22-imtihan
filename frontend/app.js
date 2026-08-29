@@ -101,7 +101,6 @@ function renderExamList(exams) {
         <span class="badge subject">${esc(x.subject)}</span>
         <span>${x.question_count} questions</span>
         <span>${x.duration_minutes} min</span>
-        <span>${esc(x.negative_marking)} neg</span>
         <span>${esc(x.description || '')}</span>
       </div>
     </div>`).join('');
@@ -128,6 +127,7 @@ function showBuilder() {
   editingQuestions = [blankQuestion()];
   renderBuilderQuestions();
   $('#builder-error').textContent = '';
+  $('#exam-builder').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 function hideBuilder() { $('#exam-builder').classList.add('hidden'); }
 function blankQuestion() {
@@ -365,7 +365,7 @@ async function loadAnalytics() {
         ${a.question_stats.map((q) => {
           const color = q.accuracy >= 70 ? 'good' : q.accuracy >= 40 ? 'mid' : 'low';
           return `<div class="q-stat">
-            <div class="q-text">${esc(q.text)} <span class="muted" style="font-weight:400;font-size:.78rem">· ${q.attempts} attempts · ${q.correct}✓ · ${q.wrong}✗ · ${q.skipped}—</span></div>
+            <div class="q-text">${esc(q.text)} <span class="muted" style="font-weight:400;font-size:.78rem">· ${q.attempts} attempts · ${q.correct}✓ ${q.wrong}✗ ${q.skipped}—</span></div>
             <div style="display:flex;justify-content:space-between;font-size:.75rem"><span class="muted">accuracy</span><strong>${q.accuracy}%</strong></div>
             <div class="bar"><div class="bar-fill ${color}" style="width:${q.accuracy}%"></div></div>
           </div>`;
