@@ -25,8 +25,14 @@ def exam_analytics(
     if exam is None or exam.teacher_id != user.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Exam not found")
 
-    subs = db.query(Submission).filter(Object(Submission.exam_id == exam.id)).all()
-    questions = db.query(Question).filter(Object(Question.exam_id == exam.id)).order_by(Question.position).all()
+    subs = db.query(Submission).filter(Submission.exam_id == exam.id).all()
+    questions = (
+        db.query(Question)
+        .options(selectinload(Question.options))
+        .filter(Question.exam_id == exam.id)
+        .order_by(Question.position)
+        .all()
+    )
 
     total = len(subs)
     if total == 0:
@@ -46,13 +52,17 @@ def exam_analytics(
     percentages = [s.score / s.max_score * 100 if s.max_score else 0.0 for s in subs]
     passed = sum(1 for p in percentages if p >= 40.0)
 
+    # Per-question stats: iterate answers joined to submissions of this exam
     q_stats: list[QuestionStat] = []
     for q in questions:
         ans_rows = (
             db.query(Answer)
-.join(Submission, Answer.submission_id == Submission.id)
-.filter(Object(Submission.exam_id == exam.id, Answer.question_id == q.id))
-.all()
+            .join(Submission, Answer.submission_id == Submission.id)
+            .filter(
+                Submission.exam_id == exam.id,
+                Answer.question_id == q.id,
+            )
+            .all()
         )
         attempts = len(ans_rows)
         correct = sum(1 for a in ans_rows if a.is_correct)
@@ -91,11 +101,24 @@ def overview(db: Session = Depends(get_db), user: User = Depends(get_current_use
     if user.role != "teacher":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Teacher access required")
 
-    exam_count = db_scalar(func.count(Exam.id)).filter(Exam.teacher_id == user.id).or(0)
-    sub_count = db.query(func.count(Submission.id)).join(Exam, Submission.exam_id == Exam.id).filter(Exam.teacher_id == user.id).scalar().or(0)
-    avg_pct = db.query(func.avg(Submission.score / Submission.max_score * 100)).join(Exam, Submission.exam_id == Exam.id).filter(Exam.teacher_id == user.id, Submission.max_score > 0).scalar().or(0)
+    exam_count = db.query(func.count(Exam.id)).filter(Exam.teacher_id == user.id).scalar() or 0
+    sub_count = (
+        db.query(func.count(Submission.id))
+        .join(Exam, Submission.exam_id == Exam.id)
+        .filter(Exam.teacher_id == user.id)
+        .scalar()
+        or 0
+    )
+    avg_pct = (
+        db.query(func.avg(Submission.score * 1.0 / Submission.max_score * 100))
+        .join(Exam, Submission.exam_id == Exam.id)
+        .filter(Exam.teacher_id == user.id, Submission.max_score > 0)
+        .scalar()
+    )
+    avg_pct = round(avg_pct, 1) if avg_pct is not None else 0.0
+
     return {
         "exam_count": exam_count,
         "submission_count": sub_count,
-        "average_percentage": round(avg_pct, 1),
+        "average_percentage": avg_pct,
     }
