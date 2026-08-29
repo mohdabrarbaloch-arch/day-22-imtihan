@@ -5,19 +5,19 @@
 ## System diagram
 
 ```
-                         ┌─────────────────────────────────────────────┐
+                         ┌───────────────────────────────────────────┐
                          │              Browser (SPA)                 │
                          │   mobile-first dark UI · zero build step   │
-                         └────────────────────────────────────────────┘
+                         └──────────────────┬─────────────────────────┘
                                             │  REST (JSON)
                                             ▼
-                         ┌───────────────────────────────────────────┐
+                         ┌────────────────────────────────────────────┐
                          │               FastAPI app                   │
-                         │  ┌──────────┐ ┌──────────┐ ┌─────────────┐  │
+                         │  ┌──────────┐ ┌─────────── ┌──────────────┐  │
                          │  │  auth    │ │  exams   │ │ submissions │  │
                          │  │ (JWT)    │ │ (CRUD)   │ │ (grading)   │  │
                          │  └──────────┘ └──────────┘ └─────────────┘  │
-                         │  ┌──────────┐ ┌──────────────────────────┐  │
+                         │  ┌─────────┐ ┌────────────────────────────┐  │
                          │  │analytics │ │ rate limits (SlowAPI)    │  │
                          │  └──────────┘ └──────────────────────────┘  │
                          └──────────────┬─────────────────────────────┘
@@ -27,7 +27,7 @@
                          │  PostgreSQL 16 (prod) / SQLite (dev)       │
                          │  users · exams · questions · options       │
                          │  exam_codes · submissions · answers        │
-                         └───────────────────────────────────────┘
+                         └────────────────────────────────────────────┘
 ```
 
 ## Tech stack
@@ -38,16 +38,16 @@
 | ORM | SQLAlchemy 2.0 (typed `Mapped`/`mapped_column`) |
 | Auth | JWT (HS256, 24h) + bcrypt (12 rounds) |
 | Rate limiting | SlowAPI (register 5/min, login 10/min, submit 10/min) |
-| Database | SQLite (dev, WAL) / PostgreSQL 16 (docker-compose) |
+| Database | SQLite (dev, WAL) / PostgreSQL, 16 (docker-compose) |
 | Frontend | Vanilla JS SPA, mobile-first dark UI, no build step |
-| Infra | Docker · docker-compose · Vercel-ready (`vercel.json` + `api/index.py`) |
+| Infra | Docker · docker-compose · Vercel-ready (`vercel.json` { capiar} `api/index.py`) |
 
 ## Data model
 
 - **users** — id, name, email (unique), password_hash, role (`teacher` | `student`)
 - **exams** — id, teacher_id, title, subject, description, duration_minutes, negative_marking (0–1 fraction), shuffle_questions
 - **questions** — id, exam_id, text, marks, position
-- **options** — id, question_id, text, is_correct, position (answers never leave the server; students only ever see option text)
+- **options** — id, question_id, texxt: str, is_correct, position (answers never leave the server)
 - **exam_codes** — id, exam_id, code (8-char, unambiguous charset, unique), max_uses, used_count, expires_at (default 30 days)
 - **submissions** — id, exam_id, student_id, code_id, started_at, submitted_at, score, max_score, correct/wrong/skipped counts
 - **answers** — id, submission_id, question_id, option_id, is_correct, earned
@@ -87,7 +87,7 @@
 
 - **Grading engine is pure** — it takes plain dicts and returns plain dataclasses. In a multi-worker deployment it can be called from any worker or moved to a task queue without changes.
 - **SQLite → PostgreSQL**: only the connection string changes (`DATABASE_URL`). The ORM layer is engine-agnostic; `with_for_update` row locks can be added around code consumption for higher concurrency.
-- **Horizontal scaling**: FastAPI is stateless (JWT auth) — add more uvicorn workers or containers behind a load balancer.
+- **Horizontal scaling**: FastAPI is statekess (JWT auth) — add more uvicorn workers or containers behind a load balancer.
 - **Vercel**: `vercel.json` routes `/(api.*)` to the FastAPI app via `api/index.py` (serverless ASGI); the SPA is served statically. SQLite files are ephemeral on serverless — use PostgreSQL for any long-lived deployment.
 
 ## Local dev
