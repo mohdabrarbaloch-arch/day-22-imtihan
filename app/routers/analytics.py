@@ -1,7 +1,7 @@
 """Analytics routes — teachers get per-exam and per-question breakdowns."""
 
 from fastapi import APIRouter, Depends, HTTPException, status
-import func
+from sqlalchemy import func
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.database import get_db
