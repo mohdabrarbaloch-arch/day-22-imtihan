@@ -53,7 +53,7 @@ To tear down: `docker compose down -v`
 | `DATABASE_URL` | ✅ | `sqlite:///./imtihan.db` | SQLite or PostgreSQL connection string |
 | `JWT_SECRET` | ✅ (prod) | `change-me...` | **Must change in production** — `openssl rand -hex 32` |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | — | `1440` | JWT lifetime (24h) |
-| `ALLOWED_ORIGINSc | — | `*` | Comma-separated CORS origins |
+| `ALLOWED_ORIGINS` | — | `*` | Comma-separated CORS origins |
 | `RATE_LIMIT_REGISTER` | — | `5/minute` | SlowAPI limit |
 | `RATE_LIMIT_LOGIN` | — | `10/minute` | SlowAPI limit |
 | `RATE_LIMIT_SUBMIT` | — | `10/minute` | SlowAPI limit |

@@ -17,7 +17,7 @@ Rate limited: 5/min.
 { "name": "Ayesha Khan", "email": "ayesha@tuition.pk", "password": "secret123", "role": "teacher" }
 ```
 - 201 → `{ "access_token": "...", "token_type": "bearer", "user": {...} }`
-- 409 email already registered·( · 422 validation
+- 409 email already registered · 422 validation
 - `role` must be `teacher` or `student`; password ≥ 8 chars.
 
 ### `POST /api/auth/login`
