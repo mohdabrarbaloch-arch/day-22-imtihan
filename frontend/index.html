@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Imtihan — امتحان | Online Exams</title>
+  <meta name="description" content="Online exam & quiz platform for tuition centers — auto-grading, negative marking, instant results." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- Auth view -->
+    <div id="auth-view" class="view hidden">
+      <div class="auth-card">
+        <div class="logo-row">
+          <div class="logo">📝</div>
+          <div>
+            <h1>Imtihan <span class="urdu">امتحان</span></h1>
+            <p class="tagline">Online exams for tuition centers & classrooms</p>
+          </div>
+        </div>
+
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="login">Login</button>
+          <button class="tab-btn" data-tab="register">Register</button>
+        </div>
+
+        <form id="auth-form">
+          <div id="name-field" class="field hidden">
+            <label for="name">Full name</label>
+            <input type="text" id="name" placeholder="Ayesha Khan" autocomplete="name" />
+          </div>
+          <div class="field">
+            <label for="email">Email</label>
+            <input type="email" id="email" placeholder="you@tuition.pk" autocomplete="email" required />
+          </div>
+          <div class="field">
+            <label for="password">Password</label>
+            <input type="password" id="password" placeholder="8+ characters" autocomplete="current-passwl�d" required />
+          </div>
+          <div id="role-field" class="field hidden">
+            <label for="role">I am a…</label>
+            <select id="role">
+              <option value="student">Student</option>
+              <option value="teacher">Teacher</option>
+            </select>
+          </div>
+          <button type="submit" id="auth-submit" class="btn-primary">Login</button>
+          <p id="auth-error" class="error"></p>
+        </form>
+      </div>
+    </div>
+
+    <!-- Main app -->
+    <div id="main-view" class="view hidden">
+      <nav class="topbar">
+        <div class="brand">📝 Imtihan <span class="urdu">امتحان</span></div>
+        <div class="topbar-right">
+          <span id="user-chip" class="chip"></span>
+          <button id="logout-btn" class="btn-ghost">Logout</button>
+        </div>
+      </nav>
+
+      <div class="nav-tabs">
+        <button class="nav-tab active" data-view="exams">Exams</button>
+        <button class="nav-tab" data-view="results">Results</button>
+        <button class="nav-tab teacher-only hidden" data-view="analytics">Analytics</button>
+      </div>
+
+      <!-- Exams -->
+      <section id="exams-view" class="view-section">
+        <div class="section-head">
+          <h2 id="exams-title">Exams</h2>
+          <button id="new-exam-btn" class="btn-primary teacher-only hidden">+ New Exam</button>
+        </div>
+
+        <!-- teacher exam builder -->
+        <div id="exam-builder" class="card hidden">
+          <h3>Create Exam</h3>
+          <div class="field">
+            <label>Title</label>
+            <input type="text" id="exam-title" placeholder="Physics Test 1" />
+          </div>
+          <div clqass="field-row">
+            <div class="field">
+              <label>Subject</label>
+              <input type="text" id="exam-subject" placeholder="Physics" />
+            </div>
+            <div class="field">
+              <label>Duration (min)</label>
+              <input type="number" id="exam-duration" value="30" min="1" max="300" />
+            </div>
+            <div class="field">
+              <label>Negative marking</label>
+              <input type="number" id="exam-negative" value="0.25" min="0" max="1" step="0.05" />
+            </div>
+          </div>
+
+          <div id="question-list"></div>
+          <button id="add-question-btn" class="btn-secondary">+ Add Question</button>
+
+          <div class="builder-actions">
+            <button id="save-exam-btn" class="btn-primary">Save Exam</button>
+            <button id="cancel-exam-btn" class="btn-ghost">Cancel</button>
+          </div>
+          <p id="builder-error" class="error"></p>
+        </div>
+
+        <!-- join code (student) -->
+        <div id="join-box" class="card student-only hidden">
+          <h3>Join an exam with your code</h3>
+          <div class="join-row">
+            <input type="text" id="join-code" placeholder="e.g. K7M2P9QX" maxlength="12" />
+            <button id="join-btn" class="btn-primary">Join</button>
+          </div>
+          <p id="join-error" class="error"></p>
+        </div>
+
+        <div id="exam-list" class="card-list"></div>
+
+        <!-- take exam -->
+        <div id="take-exam" class="card hidden">
+          <h3 id="take-title"></h3>
+          <p class="muted" id="take-meta"></p>
+          <div id="take-questions"></div>
+          <button id="submit-exam-btn" class="btn-primary">Submit Exam</button>
+          <p id="take-error" class="error"></p>
+        </div>
+
+        <!-- exam detail (teacher) -->
+        <div id="exam-detail" class="card hidden">
+          <button id="back-btn" class="btn-ghost">← Back</button>
+          <h3 id="detail-title"></h3>
+          <p class="muted" id="detail-meta"></p>
+          <div id="codes-box">
+            <h4>Join codes</h4>
+            <div id="codes-list" class="codes-list"></div>
+            <button id="gen-code-btn" class="btn-secondary">+ Generate code</button>
+          </div>
+          <div id="detail-submissions">
+            <h4>Submissions</h4>
+            <div id="subs-list"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Results -->
+      <section id="results-view" class="view-section hidden">
+        <div id="result-card" class="card hidden"></div>
+        <div id="results-list" class="card-list"></div>
+      </section>
+
+      <!-- Analytics -->
+      <section id="analytics-view" class="view-section hidden">
+        <div id="analytics-overview" class="stat-row"></div>
+        <div id="analytics-detail" class="card-list"></div>
+      </section>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
