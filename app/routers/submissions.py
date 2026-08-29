@@ -36,11 +36,13 @@ def submit_exam(
 
     code = db.query(ExamCode).filter(ExamCode.code == payload.code.strip().upper()).first()
     if code is None or code.is_expired or code.used_count >= code.max_uses:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invalid or expired exam code")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Invalid or expired exam code"
+        )
 
     exam = (
         db.query(Exam)
-.options(selectinload(Exam.questions).selectinload(Question.options))
+        .options(selectinload(Exam.questions).selectinload(Question.options))
         .filter(Exam.id == code.exam_id)
         .first()
     )
@@ -54,7 +56,10 @@ def submit_exam(
         .first()
     )
     if existing is not None:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="You have already submitted this exam")
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="You have already submitted this exam",
+        )
 
     # Map selected answers
     selected: dict[int, int | None] = {}
@@ -62,9 +67,15 @@ def submit_exam(
     valid_option_ids = {o.id for q in exam.questions for o in q.options}
     for a in payload.answers:
         if a.question_id not in valid_question_ids:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=f"Unknown question id {a.question_id}")
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Unknown question id {a.question_id}",
+            )
         if a.option_id is not None and a.option_id not in valid_option_ids:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=f"Unknown option id {a.option_id}")
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Unknown option id {a.option_id}",
+            )
         selected[a.question_id] = a.option_id
 
     questions_for_grade = [
@@ -78,6 +89,7 @@ def submit_exam(
 
     result = grade_exam(questions_for_grade, selected, exam.negative_marking)
 
+    # Option cross-check: make sure chosen option belongs to its question
     option_to_question = {o.id: q.id for q in exam.questions for o in q.options}
 
     submission = Submission(
@@ -95,11 +107,24 @@ def submit_exam(
     db.flush()
 
     for g in result.answers:
+        # ensure the selected option is actually one of THIS question's options
         chosen = g.option_id
         if chosen is not None and option_to_question.get(chosen) != g.question_id:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Option does not belong to question")
-        db.add(Answer(submission_id=submission.id, question_id=g.question_id, option_id=chosen, is_correct=g.is_correct, earned=g.earned))
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Option does not belong to question",
+            )
+        db.add(
+            Answer(
+                submission_id=submission.id,
+                question_id=g.question_id,
+                option_id=chosen,
+                is_correct=g.is_correct,
+                earned=g.earned,
+            )
+        )
 
+    # Consume the code
     code.used_count += 1
     db.commit()
 
@@ -118,7 +143,12 @@ def submit_exam(
         submitted_at=submission.submitted_at,
         auto_submitted=False,
         answers=[
-            AnswerOut(question_id=g.question_id, option_id=g.option_id, is_correct=g.is_correct, earned=g.earned)
+            AnswerOut(
+                question_id=g.question_id,
+                option_id=g.option_id,
+                is_correct=g.is_correct,
+                earned=g.earned,
+            )
             for g in result.answers
         ],
     )
@@ -136,12 +166,28 @@ def my_submissions(db: Session = Depends(get_db), user: User = Depends(get_curre
     out = []
     for s in subs:
         pct = round(s.score / s.max_score * 100, 2) if s.max_score else 0.0
-        out.append(SubmissionOut(id=s.id, exam_id=s.exam_id, exam_title=s.exam.title, student_name=user.name, score=s.score, max_score=s.max_score, percentage=pct, submitted_at=s.submitted_at, auto_submitted=s.auto_submitted))
+        out.append(
+            SubmissionOut(
+                id=s.id,
+                exam_id=s.exam_id,
+                exam_title=s.exam.title,
+                student_name=user.name,
+                score=s.score,
+                max_score=s.max_score,
+                percentage=pct,
+                submitted_at=s.submitted_at,
+                auto_submitted=s.auto_submitted,
+            )
+        )
     return out
 
 
 @router.get("/exam/{exam_id}", response_model=list[SubmissionOut])
-def exam_submissions(exam_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+def exam_submissions(
+    exam_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
     if user.role != "teacher":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Teacher access required")
     exam = db.get(Exam, exam_id)
@@ -157,5 +203,17 @@ def exam_submissions(exam_id: int, db: Session = Depends(get_db), user: User = D
     out = []
     for s in subs:
         pct = round(s.score / s.max_score * 100, 2) if s.max_score else 0.0
-        out.append(SubmissionOut(id=s.id, exam_id=s.exam_id, exam_title=exam.title, student_name=s.student.name, score=s.score, max_score=s.max_score, percentage=pct, submitted_at=s.submitted_at, auto_submitted=s.auto_submitted))
+        out.append(
+            SubmissionOut(
+                id=s.id,
+                exam_id=s.exam_id,
+                exam_title=exam.title,
+                student_name=s.student.name,
+                score=s.score,
+                max_score=s.max_score,
+                percentage=pct,
+                submitted_at=s.submitted_at,
+                auto_submitted=s.auto_submitted,
+            )
+        )
     return out
